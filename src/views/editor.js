@@ -33,6 +33,7 @@ export function renderEditor() {
     activityIds: new Set(restorable ? saved.activityIds : (existing ? existing.activityIds : [])),
     note: restorable ? (saved.note || '') : (existing ? existing.note : ''),
     photoIds: restorable ? [...(saved.photoIds || [])] : (existing ? [...existing.photoIds] : []),
+    starred: restorable ? Boolean(saved.starred) : Boolean(existing && existing.starred),
   };
 
   const addedPhotoIds = new Set();
@@ -50,6 +51,7 @@ export function renderEditor() {
         activityIds: [...draft.activityIds],
         note: draft.note,
         photoIds: [...draft.photoIds],
+        starred: draft.starred,
       };
       persist();
     }, 300);
@@ -65,9 +67,13 @@ export function renderEditor() {
     <div class="editor">
       <header class="editor-header">
         <button class="text-btn" type="button" data-role="cancel">取消</button>
-        <span class="editor-date">${escapeHtml(formatDateLabel(draft.date))}</span>
+        <button class="editor-date" type="button" data-role="date">
+          <span class="editor-date-text">${escapeHtml(formatDateLabel(draft.date))}</span>
+          <span class="editor-date-caret">▾</span>
+        </button>
         <button class="text-btn text-btn-strong" type="button" data-role="save" disabled>保存</button>
       </header>
+      <input class="date-input" type="date" value="${draft.date}" max="${dateKey()}">
       <div class="editor-body">
         <section class="field">
           <h2 class="field-label">此刻心情</h2>
@@ -90,12 +96,16 @@ export function renderEditor() {
           <input class="photo-input" type="file" accept="image/*" multiple hidden>
         </section>
         ${existing ? '<button class="danger-link" type="button" data-role="delete">删除这条记录</button>' : ''}
+        <button class="star-toggle" type="button" data-role="star">☆ 收藏这一天</button>
         <p class="editor-hint">内容会用你的密码加密后保存在本机</p>
       </div>
     </div>
   `);
 
   const saveButton = root.querySelector('[data-role="save"]');
+  const dateButton = root.querySelector('[data-role="date"]');
+  const dateInput = root.querySelector('.date-input');
+  const dateText = root.querySelector('.editor-date-text');
   const moodRow = root.querySelector('.mood-row');
   const chipGrid = root.querySelector('.chip-grid');
   const noteInput = root.querySelector('.note-input');
@@ -106,6 +116,37 @@ export function renderEditor() {
     saveButton.disabled = !draft.moodId;
     saveButton.classList.toggle('is-disabled', !draft.moodId);
   };
+
+  dateButton.addEventListener('click', () => {
+    if (typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+        return;
+      } catch {
+        // 某些浏览器要求用户手势才允许，回退到普通点击
+      }
+    }
+    dateInput.click();
+  });
+
+  dateInput.addEventListener('change', () => {
+    if (!dateInput.value) return;
+    draft.date = dateInput.value;
+    dateText.textContent = formatDateLabel(draft.date);
+    queueDraft();
+  });
+
+  const starButton = root.querySelector('[data-role="star"]');
+  const refreshStar = () => {
+    starButton.classList.toggle('is-on', draft.starred);
+    starButton.textContent = draft.starred ? '★ 已收藏' : '☆ 收藏这一天';
+  };
+  refreshStar();
+  starButton.addEventListener('click', () => {
+    draft.starred = !draft.starred;
+    refreshStar();
+    queueDraft();
+  });
 
   const moods = app.state.moods
     .filter((mood) => !mood.archived)
@@ -264,6 +305,8 @@ export function renderEditor() {
       activityIds: [...draft.activityIds],
       note: draft.note.trim(),
       photoIds: draft.photoIds,
+      starred: draft.starred,
+      likes: existing ? (existing.likes || 0) : 0,
     };
 
     const index = app.state.entries.findIndex((entry) => entry.id === record.id);
