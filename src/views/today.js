@@ -1,14 +1,12 @@
-import { app, go, getPhotoURL } from '../store.js';
+import { app, go } from '../store.js';
 import {
-  activityOf,
   calcStreak,
   dateKey,
   entriesOfDate,
   formatDateLabel,
-  formatTime,
-  moodOf,
 } from '../models.js';
 import { el, escapeHtml, emptyState } from '../ui.js';
+import { entryCard, hydratePhotos } from '../entryCard.js';
 
 export function renderToday() {
   const today = dateKey();
@@ -21,15 +19,23 @@ export function renderToday() {
           <p class="date-line">${escapeHtml(formatDateLabel(today))}</p>
           <h1 class="page-title">今天</h1>
         </div>
-        <div class="stat-pill">
-          <span class="stat-pill-value">${streak}</span>
-          <span class="stat-pill-label">连续天数</span>
+        <div class="header-actions">
+          <button class="icon-btn" type="button" data-role="search" aria-label="搜索">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+          </button>
+          <div class="stat-pill">
+            <span class="stat-pill-value">${streak}</span>
+            <span class="stat-pill-label">连续天数</span>
+          </div>
         </div>
       </header>
       <div class="banner-slot"></div>
       <section class="entry-list"></section>
     </div>
   `);
+
+  page.querySelector('[data-role="search"]').addEventListener('click', () => go('search'));
 
   const bannerSlot = page.querySelector('.banner-slot');
   const draftBanner = buildDraftBanner();
@@ -98,47 +104,4 @@ function buildBackupBanner() {
   `);
   banner.addEventListener('click', () => go('settings'));
   return banner;
-}
-
-function entryCard(entry) {
-  const mood = moodOf(app.state, entry.moodId);
-  const activities = (entry.activityIds || [])
-    .map((id) => activityOf(app.state, id))
-    .filter(Boolean);
-
-  const card = el(`
-    <button class="entry-card" type="button" style="--mood-color:${escapeHtml(mood.color)}">
-      <div class="entry-mood">${escapeHtml(mood.icon)}</div>
-      <div class="entry-body">
-        <div class="entry-top">
-          <span class="entry-mood-label">${escapeHtml(mood.label)}</span>
-          <span class="entry-time">${formatTime(entry.createdAt)}</span>
-        </div>
-        ${activities.length
-          ? `<div class="entry-tags">${activities
-            .map((activity) => `<span class="tag">${escapeHtml(activity.icon)} ${escapeHtml(activity.name)}</span>`)
-            .join('')}</div>`
-          : ''}
-        ${entry.note ? `<p class="entry-note">${escapeHtml(entry.note)}</p>` : ''}
-        ${(entry.photoIds && entry.photoIds.length)
-          ? `<div class="entry-photos">${entry.photoIds
-            .map((id) => `<img data-photo="${escapeHtml(id)}" alt="" loading="lazy">`)
-            .join('')}</div>`
-          : ''}
-      </div>
-    </button>
-  `);
-
-  card.addEventListener('click', () => {
-    go('editor', { editorEntryId: entry.id });
-  });
-  return card;
-}
-
-export async function hydratePhotos(root) {
-  const images = [...root.querySelectorAll('img[data-photo]')];
-  for (const image of images) {
-    const url = await getPhotoURL(image.dataset.photo);
-    if (url) image.src = url;
-  }
 }
