@@ -1,6 +1,5 @@
 import { createVault, emit, hasVault, unlockWithPin, unlockWithRecovery } from '../store.js';
-import { DEFAULT_PIN } from '../models.js';
-import { confirmDialog, el, escapeHtml, toast } from '../ui.js';
+import { el, escapeHtml, toast } from '../ui.js';
 
 const FAIL_KEY = 'mood-diary-pin-fails';
 const UNTIL_KEY = 'mood-diary-pin-locked-until';
@@ -243,7 +242,6 @@ function setupScreen() {
     <div class="pin-dots-slot"></div>
     <p class="pin-message" hidden></p>
     <div class="pin-pad-slot"></div>
-    <button class="link-btn" type="button" data-role="preset">使用预设密码 ${DEFAULT_PIN}</button>
   `);
 
   const dots = dotsRow();
@@ -324,21 +322,6 @@ function setupScreen() {
     else if (event.key === 'Backspace') press('delete');
   };
   attachKeyHandler(onKeyDown);
-
-  wrapper.querySelector('[data-role="preset"]').addEventListener('click', async () => {
-    const ok = await confirmDialog(
-      '使用预设密码？',
-      `预设密码 ${DEFAULT_PIN} 直接写在公开的代码里，任何拿到你手机的人都能打开。建议进入后立刻到「设置 → 修改密码」换掉。`,
-      { confirmText: '使用预设密码' }
-    );
-    if (!ok) return;
-    try {
-      const recoveryCode = await createVault(DEFAULT_PIN);
-      showRecoveryScreen(wrapper, recoveryCode);
-    } catch (error) {
-      showError(error.message || '创建失败');
-    }
-  });
 
   return wrapper;
 }
