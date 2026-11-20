@@ -1706,6 +1706,10 @@ html[data-theme="dark"] .banner-warn {
   margin-bottom: 12px;
 }
 
+.warn-text {
+  color: #b5832b;
+}
+
 .period-detail {
   display: flex;
   flex-wrap: wrap;
