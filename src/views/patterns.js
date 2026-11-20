@@ -4,8 +4,12 @@ import { el, emptyState } from '../ui.js';
 import { drawBars, drawTrend } from '../charts.js';
 
 const MIN_SAMPLES = 3;
-const PERIOD_MIN_SPAN = 60;
-const PERIOD_MIN_DAYS = 45;
+/** 门槛调低过：原来 60 天 / 45 天，对刚开始记录的人太久 */
+const PERIOD_MIN_SPAN = 30;
+const PERIOD_MIN_DAYS = 20;
+const PERIOD_MIN_PAIRS = 12;
+/** 低于这个天数时结果仍显示，但会标注样本偏少 */
+const COMFORTABLE_DAYS = 45;
 
 const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 const DAY_PARTS = [
@@ -173,7 +177,7 @@ function autocorrelation(series, lag) {
       pairs.push([series[i], series[i + lag]]);
     }
   }
-  if (pairs.length < 20) return null;
+  if (pairs.length < PERIOD_MIN_PAIRS) return null;
 
   const meanX = average(pairs.map((pair) => pair[0]));
   const meanY = average(pairs.map((pair) => pair[1]));
@@ -242,6 +246,13 @@ function renderPeriod(container, entries) {
       `).join('')}
     </div>
   `));
+
+  if (daysWithData < COMFORTABLE_DAYS) {
+    container.appendChild(el(`
+      <p class="card-foot warn-text">样本偏少（${daysWithData} 天），这个结论会随着记录增加而变化，先别太当真。</p>
+    `));
+  }
+
   container.appendChild(el(`
     <p class="card-foot">样本：${daysWithData} 天有记录，覆盖 ${span} 天。相关系数只是描述同期与滞后期的相似程度，不是因果，也不是诊断。</p>
   `));
