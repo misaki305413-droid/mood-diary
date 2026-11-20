@@ -1,4 +1,4 @@
-import { app } from '../store.js';
+import { app, go } from '../store.js';
 import { activityOf, calcStreak, dateKey, moodOf, totalDays } from '../models.js';
 import { el, emptyState, escapeHtml } from '../ui.js';
 import { drawBars, drawRing, drawTrend } from '../charts.js';
@@ -23,6 +23,30 @@ export function renderStats() {
         </div>
       </header>
       <div class="summary-grid"></div>
+      <button class="card pixel-entry" type="button" data-role="pixels">
+        <div>
+          <h2 class="card-title">年度像素图</h2>
+          <p class="card-foot">一年 365 天的心情，一屏看完</p>
+        </div>
+        <span class="setting-chevron">›</span>
+      </button>
+      <button class="card pixel-entry" type="button" data-role="keepsake">
+        <div>
+          <h2 class="card-title">珍藏</h2>
+          <p class="card-foot">收藏的日子，和点赞最多的记录</p>
+        </div>
+        <span class="setting-chevron">›</span>
+      </button>
+      <div class="card entry-links">
+        <button class="link-row" type="button" data-role="patterns">
+          <span>情绪节律</span>
+          <span class="setting-chevron">›</span>
+        </button>
+        <button class="link-row" type="button" data-role="review">
+          <span>月度回顾</span>
+          <span class="setting-chevron">›</span>
+        </button>
+      </div>
       <div class="card">
         <div class="card-head">
           <h2 class="card-title">心情走势</h2>
@@ -51,6 +75,11 @@ export function renderStats() {
   `);
 
   renderSummary(page.querySelector('.summary-grid'), entries);
+
+  page.querySelector('[data-role="pixels"]').addEventListener('click', () => go('pixels'));
+  page.querySelector('[data-role="keepsake"]').addEventListener('click', () => go('keepsake'));
+  page.querySelector('[data-role="patterns"]').addEventListener('click', () => go('patterns'));
+  page.querySelector('[data-role="review"]').addEventListener('click', () => go('review'));
 
   const tabs = page.querySelector('.range-tabs');
   RANGES.forEach((range) => {
