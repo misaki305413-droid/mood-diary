@@ -62,7 +62,7 @@ export function renderSettings() {
         <button class="setting-row setting-row-button" type="button" data-role="change-pin">
           <div>
             <p class="setting-label">修改密码</p>
-            <p class="setting-hint">预设密码建议换成只有你知道的</p>
+            <p class="setting-hint">换成只有你知道的 6 位数字</p>
           </div>
           <span class="setting-chevron">›</span>
         </button>
@@ -92,6 +92,7 @@ export function renderSettings() {
         </div>
         <button class="btn btn-primary btn-block" type="button" data-role="export">导出加密备份</button>
         <button class="btn btn-block" type="button" data-role="import">从备份恢复</button>
+        <button class="btn btn-block" type="button" data-role="export-csv">导出 CSV（明文）</button>
         <p class="card-foot">备份文件用密码加密，只有你能打开。建议存到自己的网盘或电脑上。</p>
         <input class="import-input" type="file" accept=".zip,application/zip" hidden>
       </section>
@@ -234,6 +235,26 @@ export function renderSettings() {
       go('today');
     } catch (error) {
       toast(error.message || '恢复失败');
+    }
+  });
+
+  page.querySelector('[data-role="export-csv"]').addEventListener('click', async () => {
+    const ok = await confirmDialog(
+      '导出 CSV？',
+      'CSV 是明文表格，任何人拿到都能直接读，也不含照片和视频。适合自己分析或迁移数据。',
+      { confirmText: '导出' }
+    );
+    if (!ok) return;
+    try {
+      const csv = buildCsv(app.state);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadBlob(
+        new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }),
+        `mood-diary-${stamp}.csv`
+      );
+      toast('CSV 已导出');
+    } catch (error) {
+      toast(error.message || '导出失败');
     }
   });
 
@@ -451,6 +472,45 @@ async function regenerateRecoveryCode() {
   } catch (error) {
     toast(error.message || '生成失败');
   }
+}
+
+function csvCell(value) {
+  const text = String(value == null ? '' : value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** 明文 CSV，方便在 Excel 里自己算或迁移，不含照片和视频 */
+function buildCsv(state) {
+  const rows = [['日期', '时间', '心情', '等级', '活动', '文字', '照片数', '点赞', '收藏']];
+  const entries = [...state.entries].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return a.createdAt - b.createdAt;
+  });
+
+  for (const entry of entries) {
+    const mood = state.moods.find((item) => item.id === entry.moodId);
+    const activities = (entry.activityIds || [])
+      .map((id) => state.activities.find((item) => item.id === id))
+      .filter(Boolean)
+      .map((item) => item.name)
+      .join(' / ');
+    const date = new Date(entry.createdAt);
+    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+    rows.push([
+      entry.date,
+      time,
+      mood ? mood.label : '',
+      mood ? mood.level : '',
+      activities,
+      (entry.note || '').replace(/\r?\n/g, ' '),
+      (entry.photoIds || []).length,
+      entry.likes || 0,
+      entry.starred ? '是' : '否',
+    ]);
+  }
+
+  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
 }
 
 async function prunePhotos() {
