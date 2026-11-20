@@ -6,6 +6,11 @@ import { renderEditor } from './views/editor.js';
 import { renderCalendar } from './views/calendar.js';
 import { renderStats } from './views/stats.js';
 import { renderSettings } from './views/settings.js';
+import { renderSearch } from './views/search.js';
+import { renderPixels } from './views/pixels.js';
+import { renderKeepsake } from './views/keepsake.js';
+import { renderPatterns } from './views/patterns.js';
+import { renderReview } from './views/review.js';
 
 const TABS = [
   { id: 'today', label: '今日', icon: '<circle cx="12" cy="12" r="8.5"/><path d="M8.8 14.2c.8 1.1 1.9 1.7 3.2 1.7s2.4-.6 3.2-1.7M9.4 9.8h.01M14.6 9.8h.01"/>' },
@@ -19,6 +24,11 @@ const VIEWS = {
   calendar: renderCalendar,
   stats: renderStats,
   settings: renderSettings,
+  search: renderSearch,
+  pixels: renderPixels,
+  keepsake: renderKeepsake,
+  patterns: renderPatterns,
+  review: renderReview,
 };
 
 let scrollMemory = 0;
@@ -119,8 +129,19 @@ function registerServiceWorker() {
   if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     return;
   }
+
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing || !hadController) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js')
+      .then((registration) => registration.update())
+      .catch(() => {});
   });
 }
 
