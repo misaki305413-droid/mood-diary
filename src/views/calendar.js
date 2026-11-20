@@ -1,14 +1,12 @@
 import { app, go } from '../store.js';
 import {
-  activityOf,
   dateKey,
   entriesOfDate,
-  formatTime,
-  moodOf,
+  moodColorForEntries,
   parseDateKey,
 } from '../models.js';
-import { el, escapeHtml, emptyState } from '../ui.js';
-import { hydratePhotos } from './today.js';
+import { el, emptyState } from '../ui.js';
+import { entryCard, hydratePhotos } from '../entryCard.js';
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -63,7 +61,7 @@ export function renderCalendar() {
   for (let day = 1; day <= daysInMonth; day += 1) {
     const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayEntries = byDate.get(key) || [];
-    const color = averageMoodColor(dayEntries);
+    const color = moodColorForEntries(app.state, dayEntries);
     const cell = el(`
       <button class="cal-cell" type="button" data-date="${key}">
         <span class="cal-day">${day}</span>
@@ -99,22 +97,6 @@ export function renderCalendar() {
   return page;
 }
 
-function averageMoodColor(entries) {
-  if (!entries.length) return null;
-  const levels = entries.map((entry) => moodOf(app.state, entry.moodId).level);
-  const average = levels.reduce((sum, level) => sum + level, 0) / levels.length;
-  let best = null;
-  let distance = Infinity;
-  for (const mood of app.state.moods) {
-    const diff = Math.abs(mood.level - average);
-    if (diff < distance) {
-      distance = diff;
-      best = mood;
-    }
-  }
-  return best ? best.color : null;
-}
-
 function renderPanel(panel, key) {
   panel.innerHTML = '';
   const date = parseDateKey(key);
@@ -139,40 +121,7 @@ function renderPanel(panel, key) {
   }
 
   const list = el('<div class="entry-list"></div>');
-  entries.forEach((entry) => {
-    const mood = moodOf(app.state, entry.moodId);
-    const activities = (entry.activityIds || [])
-      .map((id) => activityOf(app.state, id))
-      .filter(Boolean);
-
-    const card = el(`
-      <button class="entry-card" type="button" style="--mood-color:${escapeHtml(mood.color)}">
-        <div class="entry-mood">${escapeHtml(mood.icon)}</div>
-        <div class="entry-body">
-          <div class="entry-top">
-            <span class="entry-mood-label">${escapeHtml(mood.label)}</span>
-            <span class="entry-time">${formatTime(entry.createdAt)}</span>
-          </div>
-          ${activities.length
-            ? `<div class="entry-tags">${activities
-              .map((activity) => `<span class="tag">${escapeHtml(activity.icon)} ${escapeHtml(activity.name)}</span>`)
-              .join('')}</div>`
-            : ''}
-          ${entry.note ? `<p class="entry-note">${escapeHtml(entry.note)}</p>` : ''}
-          ${(entry.photoIds && entry.photoIds.length)
-            ? `<div class="entry-photos">${entry.photoIds
-              .map((id) => `<img data-photo="${escapeHtml(id)}" alt="" loading="lazy">`)
-              .join('')}</div>`
-            : ''}
-        </div>
-      </button>
-    `);
-    card.addEventListener('click', () => {
-      app.editorDate = null;
-      go('editor', { editorEntryId: entry.id });
-    });
-    list.appendChild(card);
-  });
+  entries.forEach((entry) => list.appendChild(entryCard(entry)));
   panel.appendChild(list);
   hydratePhotos(list);
 }
