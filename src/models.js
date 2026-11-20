@@ -1,8 +1,5 @@
 export const SCHEMA_VERSION = 1;
 
-/** 首次创建数据时可直接使用的预设密码，仅作便利，安全性低于自设密码 */
-export const DEFAULT_PIN = '305413';
-
 export const DEFAULT_MOODS = [
   { id: 'm1', label: '很糟', icon: '😖', color: '#a08cb8', level: 1, order: 0, archived: false },
   { id: 'm2', label: '不好', icon: '😕', color: '#8d9dc0', level: 2, order: 1, archived: false },
@@ -92,6 +89,8 @@ export function ensureState(state) {
     if (!Array.isArray(entry.activityIds)) entry.activityIds = [];
     if (!Array.isArray(entry.photoIds)) entry.photoIds = [];
     if (typeof entry.note !== 'string') entry.note = '';
+    if (typeof entry.likes !== 'number') entry.likes = 0;
+    if (typeof entry.starred !== 'boolean') entry.starred = false;
   });
   next.schemaVersion = SCHEMA_VERSION;
   return next;
@@ -173,4 +172,23 @@ export function moodOf(state, moodId) {
 
 export function activityOf(state, activityId) {
   return state.activities.find((activity) => activity.id === activityId);
+}
+
+/** 一组记录的平均心情，映射到最接近的心情颜色 */
+export function moodColorForEntries(state, entries) {
+  if (!entries || !entries.length) return null;
+  const average = entries.reduce(
+    (sum, entry) => sum + moodOf(state, entry.moodId).level,
+    0
+  ) / entries.length;
+  let best = null;
+  let distance = Infinity;
+  for (const mood of state.moods) {
+    const diff = Math.abs(mood.level - average);
+    if (diff < distance) {
+      distance = diff;
+      best = mood;
+    }
+  }
+  return best ? best.color : null;
 }
