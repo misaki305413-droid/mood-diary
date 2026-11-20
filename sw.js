@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mood-diary-v4';
+const CACHE_NAME = 'mood-diary-v11';
 
 const ASSETS = [
   './',
@@ -14,12 +14,19 @@ const ASSETS = [
   './src/backup.js',
   './src/charts.js',
   './src/ui.js',
+  './src/entryCard.js',
+  './src/photoViewer.js',
   './src/views/lock.js',
   './src/views/today.js',
   './src/views/editor.js',
   './src/views/calendar.js',
   './src/views/stats.js',
   './src/views/settings.js',
+  './src/views/search.js',
+  './src/views/pixels.js',
+  './src/views/keepsake.js',
+  './src/views/patterns.js',
+  './src/views/review.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
