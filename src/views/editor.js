@@ -67,13 +67,8 @@ export function renderEditor() {
     <div class="editor">
       <header class="editor-header">
         <button class="text-btn" type="button" data-role="cancel">取消</button>
-        <button class="editor-date" type="button" data-role="date">
-          <span class="editor-date-text">${escapeHtml(formatDateLabel(draft.date))}</span>
-          <span class="editor-date-caret">▾</span>
-        </button>
         <button class="text-btn text-btn-strong" type="button" data-role="save" disabled>保存</button>
       </header>
-      <input class="date-input" type="date" value="${draft.date}" max="${dateKey()}">
       <div class="editor-body">
         <section class="field">
           <h2 class="field-label">此刻心情</h2>
@@ -95,6 +90,17 @@ export function renderEditor() {
           </div>
           <input class="photo-input" type="file" accept="image/*" multiple hidden>
         </section>
+        <section class="field">
+          <h2 class="field-label">记录日期</h2>
+          <div class="date-field">
+            <div class="date-value">
+              <span class="editor-date-text">${escapeHtml(formatDateLabel(draft.date))}</span>
+              <span class="setting-chevron">›</span>
+            </div>
+            <input class="date-input" type="date" value="${draft.date}" max="${dateKey()}" aria-label="选择记录日期">
+          </div>
+          <p class="field-hint">默认是今天，写完可以改成以前的某一天</p>
+        </section>
         ${existing ? '<button class="danger-link" type="button" data-role="delete">删除这条记录</button>' : ''}
         <button class="star-toggle" type="button" data-role="star">☆ 收藏这一天</button>
         <p class="editor-hint">内容会用你的密码加密后保存在本机</p>
@@ -103,7 +109,6 @@ export function renderEditor() {
   `);
 
   const saveButton = root.querySelector('[data-role="save"]');
-  const dateButton = root.querySelector('[data-role="date"]');
   const dateInput = root.querySelector('.date-input');
   const dateText = root.querySelector('.editor-date-text');
   const moodRow = root.querySelector('.mood-row');
@@ -116,18 +121,6 @@ export function renderEditor() {
     saveButton.disabled = !draft.moodId;
     saveButton.classList.toggle('is-disabled', !draft.moodId);
   };
-
-  dateButton.addEventListener('click', () => {
-    if (typeof dateInput.showPicker === 'function') {
-      try {
-        dateInput.showPicker();
-        return;
-      } catch {
-        // 某些浏览器要求用户手势才允许，回退到普通点击
-      }
-    }
-    dateInput.click();
-  });
 
   dateInput.addEventListener('change', () => {
     if (!dateInput.value) return;
