@@ -8,6 +8,7 @@ import {
 } from '../store.js';
 import * as db from '../db.js';
 import * as crypto from '../crypto.js';
+import { dateKey } from '../models.js';
 import {
   buildBackup,
   downloadBlob,
@@ -128,6 +129,20 @@ export function renderSettings() {
           <p class="setting-hint" data-role="usage">计算中…</p>
         </div>
         <p class="card-foot">所有内容经 AES-GCM 加密后存放在本机，不上传任何服务器。</p>
+        <button class="setting-row setting-row-button" type="button" data-role="demo-add">
+          <div>
+            <p class="setting-label">填充 10 天演示数据</p>
+            <p class="setting-hint">用来看图表的实际效果，之后可以一键删除</p>
+          </div>
+          <span class="setting-chevron">›</span>
+        </button>
+        <button class="setting-row setting-row-button" type="button" data-role="demo-clear" hidden>
+          <div>
+            <p class="setting-label">删除演示数据</p>
+            <p class="setting-hint">只删除带演示标记的记录，真实记录不动</p>
+          </div>
+          <span class="setting-chevron">›</span>
+        </button>
         <button class="danger-link" type="button" data-role="wipe">清空所有数据</button>
       </section>
     </div>
@@ -333,6 +348,34 @@ export function renderSettings() {
     });
   });
 
+  const demoClear = page.querySelector('[data-role="demo-clear"]');
+  demoClear.hidden = !app.state.entries.some((entry) => entry.demo);
+  demoClear.addEventListener('click', async () => {
+    const ok = await confirmDialog(
+      '删除演示数据？',
+      '只删除标记为演示的记录，你的真实记录不受影响。',
+      { confirmText: '删除', danger: true }
+    );
+    if (!ok) return;
+    app.state.entries = app.state.entries.filter((entry) => !entry.demo);
+    await persist();
+    toast('演示数据已清除');
+    go('settings');
+  });
+
+  page.querySelector('[data-role="demo-add"]').addEventListener('click', async () => {
+    const ok = await confirmDialog(
+      '填充 10 天演示数据？',
+      '会写入最近 10 天、每天 1–2 条的假记录，用来看首页时间线、像素图和统计的实际效果。之后可以在本页一键删除。',
+      { confirmText: '填充' }
+    );
+    if (!ok) return;
+    app.state.entries.push(...buildDemoEntries());
+    await persist();
+    toast('演示数据已写入');
+    go('today');
+  });
+
   page.querySelector('[data-role="wipe"]').addEventListener('click', async () => {
     const first = await confirmDialog(
       '清空所有数据？',
@@ -472,6 +515,74 @@ async function regenerateRecoveryCode() {
   } catch (error) {
     toast(error.message || '生成失败');
   }
+}
+
+/** 生成 10 天演示记录，全部带 demo 标记，可一键清除 */
+function buildDemoEntries() {
+  const notes = [
+    '普通的一天',
+    '工作有点累',
+    '和朋友吃了顿饭',
+    '看了部电影',
+    '早睡了一次',
+    '有点焦虑，说不清原因',
+    '散步半小时',
+    '天气很好，心情也跟着好',
+    '加班到很晚',
+    '什么都没做，休息',
+  ];
+  const moodIds = ['m1', 'm2', 'm3', 'm4', 'm5'];
+  const activityIds = app.state.activities
+    .filter((activity) => !activity.archived)
+    .map((activity) => activity.id);
+
+  const entries = [];
+  const today = new Date();
+
+  for (let offset = 9; offset >= 0; offset -= 1) {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset);
+    const key = dateKey(date);
+    const count = offset % 3 === 0 ? 2 : 1;
+
+    for (let index = 0; index < count; index += 1) {
+      const hour = index === 0
+        ? 8 + Math.floor(Math.random() * 4)
+        : 18 + Math.floor(Math.random() * 5);
+      const createdAt = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        hour,
+        Math.floor(Math.random() * 60)
+      ).getTime();
+
+      const picks = [];
+      const pickCount = 1 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < pickCount; k += 1) {
+        if (!activityIds.length) break;
+        const id = activityIds[Math.floor(Math.random() * activityIds.length)];
+        if (!picks.includes(id)) picks.push(id);
+      }
+
+      entries.push({
+        id: globalThis.crypto?.randomUUID
+          ? globalThis.crypto.randomUUID()
+          : `demo-${offset}-${index}`,
+        date: key,
+        createdAt,
+        updatedAt: Date.now(),
+        moodId: moodIds[Math.floor(Math.random() * moodIds.length)],
+        activityIds: picks,
+        note: notes[Math.floor(Math.random() * notes.length)],
+        photoIds: [],
+        starred: Math.random() < 0.2,
+        likes: Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 3) : 0,
+        demo: true,
+      });
+    }
+  }
+
+  return entries;
 }
 
 function csvCell(value) {
