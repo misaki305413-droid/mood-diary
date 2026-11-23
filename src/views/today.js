@@ -4,9 +4,13 @@ import {
   dateKey,
   entriesOfDate,
   formatDateLabel,
+  sortEntries,
 } from '../models.js';
 import { el, escapeHtml, emptyState } from '../ui.js';
 import { entryCard, hydratePhotos } from '../entryCard.js';
+
+const HISTORY_PAGE = 20;
+let historyLimit = HISTORY_PAGE;
 
 export function renderToday() {
   const today = dateKey();
@@ -54,7 +58,57 @@ export function renderToday() {
   }
 
   hydratePhotos(list);
+
+  const pastEntries = sortEntries(
+    app.state.entries.filter((entry) => entry.date < today)
+  );
+  if (pastEntries.length) {
+    page.appendChild(buildHistory(pastEntries));
+  }
+
   return page;
+}
+
+/** 首页下半部分：今天之前的记录，按时间倒序，分批展开 */
+function buildHistory(pastEntries) {
+  const section = el(`
+    <section class="history">
+      <div class="history-head">
+        <h2 class="section-title">更早</h2>
+        <button class="text-btn text-btn-strong" type="button" data-role="all">搜索与筛选</button>
+      </div>
+      <div class="entry-list history-list"></div>
+      <button class="btn btn-block history-more" type="button" data-role="more"></button>
+    </section>
+  `);
+
+  const list = section.querySelector('.history-list');
+  const moreButton = section.querySelector('[data-role="more"]');
+
+  section.querySelector('[data-role="all"]').addEventListener('click', () => go('search'));
+
+  const renderSlice = () => {
+    list.innerHTML = '';
+    const slice = pastEntries.slice(0, historyLimit);
+    slice.forEach((entry) => list.appendChild(entryCard(entry, { showDate: true })));
+    hydratePhotos(list);
+
+    const remaining = pastEntries.length - slice.length;
+    if (remaining > 0) {
+      moreButton.hidden = false;
+      moreButton.textContent = `显示更早的记录（还有 ${remaining} 条）`;
+    } else {
+      moreButton.hidden = true;
+    }
+  };
+
+  moreButton.addEventListener('click', () => {
+    historyLimit += HISTORY_PAGE;
+    renderSlice();
+  });
+
+  renderSlice();
+  return section;
 }
 
 function buildDraftBanner() {
