@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mood-diary-v14';
+const CACHE_NAME = 'mood-diary-v15';
 
 const ASSETS = [
   './',
