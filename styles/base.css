@@ -316,6 +316,29 @@ p {
   color: var(--text-tertiary);
 }
 
+/* ---------- 首页历史记录 ---------- */
+
+.history {
+  margin-top: 28px;
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.history-more {
+  margin-top: 12px;
+}
+
 /* ---------- 备份横幅 ---------- */
 
 .banner {
