@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mood-diary-v17';
+const CACHE_NAME = 'mood-diary-v18';
 
 const ASSETS = [
   './',
@@ -16,6 +16,7 @@ const ASSETS = [
   './src/ui.js',
   './src/entryCard.js',
   './src/photoViewer.js',
+  './src/demo.js',
   './src/views/lock.js',
   './src/views/today.js',
   './src/views/editor.js',
