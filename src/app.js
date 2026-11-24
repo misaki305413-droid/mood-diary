@@ -1,4 +1,5 @@
-import { app, applyTheme, go, lock, onChange } from './store.js';
+import { app, applyTheme, go, lock, onChange, persist } from './store.js';
+import { buildDemoEntries } from './demo.js';
 import { el } from './ui.js';
 import { detachLock, renderLock } from './views/lock.js';
 import { renderToday } from './views/today.js';
@@ -147,6 +148,20 @@ function registerServiceWorker() {
 
 function boot() {
   applyTheme(app.theme);
+
+  /** 打开 ?demo=N 时，解锁后自动写入 N 天演示数据 */
+  let pendingDemo = Number(new URLSearchParams(location.search).get('demo')) || 0;
+  if (pendingDemo > 0) {
+    history.replaceState(null, '', location.pathname);
+    onChange(() => {
+      if (!pendingDemo || !app.state) return;
+      const days = pendingDemo;
+      pendingDemo = 0;
+      app.state.entries.push(...buildDemoEntries(app.state, days));
+      persist();
+    });
+  }
+
   onChange(render);
   setupAutoLock();
   registerServiceWorker();
